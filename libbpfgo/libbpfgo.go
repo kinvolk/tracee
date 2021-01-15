@@ -344,6 +344,27 @@ func (b *BPFMap) Update(key, value interface{}) error {
 	return nil
 }
 
+func (b *BPFMap) Delete(key interface{}) error {
+	var keyPtr unsafe.Pointer
+	if k, isType := key.(int32); isType {
+		keyPtr = unsafe.Pointer(&k)
+	} else if k, isType := key.(uint32); isType {
+		keyPtr = unsafe.Pointer(&k)
+	} else if k, isType := key.(int64); isType {
+		keyPtr = unsafe.Pointer(&k)
+	} else if k, isType := key.(uint64); isType {
+		keyPtr = unsafe.Pointer(&k)
+	} else {
+		return fmt.Errorf("failed to delete entry in map %s: unknown key type %T", b.name, key)
+	}
+
+	err := C.bpf_map_delete_elem(b.fd, keyPtr)
+	if err != 0 {
+		return fmt.Errorf("failed to delete entry in map %s", b.name)
+	}
+	return nil
+}
+
 func (m *Module) GetProgram(progName string) (*BPFProg, error) {
 	cs := C.CString(progName)
 	prog := C.bpf_object__find_program_by_name(m.obj, cs)
